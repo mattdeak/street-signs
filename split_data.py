@@ -53,7 +53,9 @@ assert (
 data_dir = args.DATA_DIR
 target_dir = args.TARGET_DIR
 
-files = set([image_name for image_name in os.listdir(data_dir)])
+files = set(
+    [image_name for image_name in os.listdir(data_dir) if image_name.endswith("png")]
+)
 train_num = int(len(files) * args.train_size)
 if args.train_size + args.validation_size == 1:
     validation_num = len(files) - train_num
