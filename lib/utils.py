@@ -26,9 +26,13 @@ def load_train(use_extra=False):
 
 
 def load_test():
-    train = scipy.io.loadmat(FORMAT2_TRAIN)
-    images = train["X"]
-    labels = train["y"]
+    """load_test
+    Loads the format2 test matrix into memory.
+    Returns: images, labels
+    """
+    test = scipy.io.loadmat(FORMAT2_TEST)
+    images = test["X"]
+    labels = test["y"]
     images = np.moveaxis(images, -1, 0)
 
     return images, labels
