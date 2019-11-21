@@ -1,6 +1,5 @@
-import sys
 import numpy as np
-import scipy
+import scipy.io
 
 # Load format 2
 FORMAT2_TRAIN = "/home/matt/Projects/CV/final/data/raw/format2/train_32x32.mat"
@@ -9,14 +8,6 @@ FORMAT2_EXTRA = "/home/matt/Projects/CV/final/data/raw/format2/extra_32x32.mat"
 
 
 def load_train(use_extra=False):
-    if use_extra:
-        print(
-            "Warning - efficient handling of extra images not supported. This may cause memory issues"
-        )
-        cont = input("Continue? (y/n)")
-        if cont.lower() != "y":
-            print("Exiting")
-            sys.exit(0)
     # Loading and merging with train
     train = scipy.io.loadmat(FORMAT2_TRAIN)
     images = train["X"]
@@ -34,4 +25,10 @@ def load_train(use_extra=False):
     return images, labels
 
 
-images, labels = load_train(use_extra=True)
+def load_test():
+    train = scipy.io.loadmat(FORMAT2_TRAIN)
+    images = train["X"]
+    labels = train["y"]
+    images = np.moveaxis(images, -1, 0)
+
+    return images, labels
