@@ -15,6 +15,7 @@ train = "/home/matt/Projects/CV/final/data/raw/format2/train_32x32.mat"
 # TODO: Create composable pipeline.
 floatify = preprocess.FloatifyImage()
 onehot = preprocess.OneHotLabels(10)
+
 augmentation = preprocess.RandomAugmentation(
     vertical_flip=False,
     horizontal_flip=False,
@@ -23,11 +24,6 @@ augmentation = preprocess.RandomAugmentation(
 )
 
 maybe_augment = preprocess.Maybe(augmentation)
-
-f = scipy.io.loadmat(train)
-images = f["X"]
-labels = f["y"]
-images = np.moveaxis(images, -1, 0)
 
 
 def make_train_pipeline(images, labels):
@@ -55,4 +51,4 @@ def make_validation_pipeline(images, labels):
 
 # Don't even know if we need this
 def make_test_pipeline(images):
-    pass
+    raise NotImplementedError()
