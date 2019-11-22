@@ -29,11 +29,10 @@ maybe_augment = preprocess.Maybe(augmentation)
 def make_train_pipeline(images, labels):
     dataset = tf.data.Dataset.from_tensor_slices((images, labels))
     dataset = dataset.shuffle(buffer_size=FLAGS.shuffle_buffer_size)
-    dataset = dataset.map(floatify, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.map(onehot, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    dataset = dataset.map(
-        maybe_augment, num_parallel_calls=tf.data.experimental.AUTOTUNE
-    )
+    # dataset = dataset.map(
+    #     maybe_augment, num_parallel_calls=tf.data.experimental.AUTOTUNE
+    # )
     dataset = dataset.batch(batch_size=FLAGS.batch_size)
     dataset = dataset.repeat(FLAGS.num_epochs)
     return dataset
@@ -42,7 +41,6 @@ def make_train_pipeline(images, labels):
 def make_validation_pipeline(images, labels):
     dataset = tf.data.Dataset.from_tensor_slices((images, labels))
     dataset = dataset.shuffle(buffer_size=FLAGS.shuffle_buffer_size)
-    dataset = dataset.map(floatify, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.map(onehot, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     dataset = dataset.batch(batch_size=FLAGS.batch_size)
     dataset = dataset.repeat()  # Repeat this one forever

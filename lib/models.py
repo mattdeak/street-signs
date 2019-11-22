@@ -62,7 +62,7 @@ def build_simple_cnn1(
 
     model = tf.keras.Model(inputs=[input_layer], outputs=[outputs])
 
-    optimizer = tf.optimizers.Adam(lr=1e-6, amsgrad=True)
+    optimizer = tf.optimizers.Adam(lr=lr, amsgrad=True)
     model.compile(
         optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
     )
@@ -82,7 +82,8 @@ def build_vgg_model(input_shape, dense_units=512, activation="selu", lr=0.001):
 
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
 
-    optimizer = tf.optimizers.Adam(lr=1e-6, amsgrad=True)
+    # optimizer = tf.optimizers.SGD(lr=lr, momentum=0.9, nesterov=True)
+    optimizer = tf.optimizers.Adam(lr=lr, clipnorm=1.0)
     model.compile(
         optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
     )
