@@ -17,7 +17,7 @@ class OneHotLabels(Preprocessor):
         self.n_classes = n_classes
 
     def __call__(self, image, labels):
-        ohe_labels = tf.reduce_sum(tf.one_hot(labels, self.n_classes), axis=0)
+        ohe_labels = tf.one_hot(labels, self.n_classes)
         return image, ohe_labels
 
 

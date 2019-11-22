@@ -18,11 +18,13 @@ def load_train(use_extra=False):
     train = scipy.io.loadmat(FORMAT2_TRAIN)
     images = train["X"]
     labels = train["y"]
+    labels = labels.reshape(-1,)
     images = np.moveaxis(images, -1, 0)
 
     if use_extra:
         extra_images = np.load(FORMAT2_EXTRA_IMAGES)
         extra_labels = np.load(FORMAT2_EXTRA_LABELS)
+        extra_labels = extra_labels.reshape(-1,)
         extra_images = np.moveaxis(extra_images, -1, 0)
         images = np.vstack([images, extra_images])
         labels = np.vstack([labels, extra_labels])
@@ -31,7 +33,7 @@ def load_train(use_extra=False):
         images = images[idx, :, :, :]
         labels = labels[idx]
 
-    return images, labels
+    return images / 255.0, labels - 1  # Make range 0-9
 
 
 def load_test():
@@ -42,6 +44,7 @@ def load_test():
     test = scipy.io.loadmat(FORMAT2_TEST)
     images = test["X"]
     labels = test["y"]
+    labels = labels.reshape(-1,)
     images = np.moveaxis(images, -1, 0)
 
-    return images, labels
+    return images / 255.0, labels - 1
