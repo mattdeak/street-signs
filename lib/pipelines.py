@@ -7,7 +7,7 @@ from collections import namedtuple
 
 # Just for debugging. TODO: Move this into a config file
 FlagTuple = namedtuple("Flags", "shuffle_buffer_size batch_size num_epochs")
-FLAGS = FlagTuple(shuffle_buffer_size=10000, batch_size=32, num_epochs=10)
+FLAGS = FlagTuple(shuffle_buffer_size=10000, batch_size=32, num_epochs=100)
 # 10 Data directories for development
 train = "/home/matt/Projects/CV/final/data/raw/format2/train_32x32.mat"
 
