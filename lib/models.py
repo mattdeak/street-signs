@@ -8,6 +8,7 @@ Conv2D = tf.keras.layers.Conv2D
 Dense = tf.keras.layers.Dense
 Flatten = tf.keras.layers.Flatten
 Dropout = tf.keras.layers.Dropout
+EarlyStopping = tf.keras.callbacks.EarlyStopping
 
 
 # Hyperparameters
@@ -29,6 +30,37 @@ def build_baseline(input_shape):
     model = tf.keras.Model(inputs=[input_layer], outputs=[outputs])
 
     optimizer = tf.optimizers.Adam(lr=0.00001)
+    model.compile(
+        optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
+    )
+
+    return model
+
+
+def build_simple_cnn1(
+    input_shape,
+    convolutional_blocks=3,
+    convolutions_per_block=3,
+    lr=0.0001,
+    dropout_rate=0.5,
+):
+    input_layer = keras.layers.Input(shape=input_shape, name="Input")
+
+    x = input_layer  # Alias for easier loops
+    for block in range(convolutional_blocks):
+
+        for layer in range(convolutions_per_block):
+            x = Conv2D(64, kernel_size, padding="same", activation=tf.nn.selu)(x)
+        x = tf.keras.layers.MaxPool2D()(x)
+
+    flattened = Flatten()(x)
+    dense1 = Dense(N_DENSE_UNITS, activation="selu")(flattened)
+    dropout = Dropout(dropout_rate)(dense1)
+    outputs = Dense(N_OUTPUTS, activation="softmax")(dropout)
+
+    model = tf.keras.Model(inputs=[input_layer], outputs=[outputs])
+
+    optimizer = tf.optimizers.Adam(lr=lr)
     model.compile(
         optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"]
     )
