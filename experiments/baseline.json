@@ -1,0 +1,6 @@
+{
+    "architecture": "baseline",
+    "builder_args": {},
+    "trainer_args": {"max_epochs": 100},
+    "dataset": {"use_extra": false}
+}

@@ -1,7 +1,7 @@
 import tensorflow as tf
 import scipy
-import preprocess
 import numpy as np
+from . import preprocess
 import cv2
 from collections import namedtuple
 
