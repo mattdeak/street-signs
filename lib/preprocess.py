@@ -5,6 +5,20 @@ import numpy as np
 import scipy.io
 from abc import abstractmethod, ABC
 
+feature_desc = {
+        'image/height': tf.io.FixedLenFeature([], tf.int64),
+        'image/width': tf.io.FixedLenFeature([], tf.int64),
+        'image/label': tf.io.FixedLenFeature([], tf.int64),
+        'image/image': tf.io.FixedLenFeature([], tf.string)
+        }
+
+def parse_example(example):
+    parsed = tf.io.parse_single_example(example, feature_desc)
+
+    image_encoded = parsed['image/image']
+    image = tf.image.decode_jpeg(image_encoded)
+    label = parsed['image/label']
+    return image, label
 
 class Preprocessor(ABC):
     @abstractmethod
