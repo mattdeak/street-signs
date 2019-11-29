@@ -3,6 +3,7 @@ from lib.utils import load_train, load_test
 from lib.pipelines import *
 from lib.models import *
 from lib.trainers import *
+from lib.dataloader import DataLoader
 import pickle
 from functools import partial
 import os
@@ -18,34 +19,29 @@ def validate_spec(spec_data):
     ], f"Architecture {spec_data['architecture']} not supported"
 
 
-def main(builder, trainer, save_path, history_path, use_extra=False):
+def main(builder, trainer, loader, save_path, history_path, use_extra=False):
 
     # Hyperparameters
+    input_shape = (32, 32, 3)
+    classes = loader.n_classes
 
-    images, labels = load_train(use_extra=use_extra)
-    val_images, val_labels = load_test()
 
-    steps_per_epoch = (
-        len(images) // 32
-    )  # We're going to validate more often than after an epoch
-    validation_steps = len(val_images) // 32
+    train_set = loader.train_dataset
+    val_set = loader.val_dataset
 
-    dataset = make_train_pipeline(images, labels)
-    validation = make_validation_pipeline(val_images, val_labels)
+    steps_per_epoch = loader.train_size // loader.batch_size  
+    validation_steps = loader.val_size // loader.batch_size
 
-    input_shape = images.shape[1:]
-
-    model = builder(input_shape)
+    model = builder(input_shape, n_classes=classes)
     history = trainer(
         model,
-        dataset,
-        validation,
+        train_set,
+        val_set,
         steps_per_epoch=steps_per_epoch,
         validation_steps=validation_steps,
     )
     print(f"Saving trained model in {save_path}")
-    tf.keras.models.save_model(model, save_path)
-
+    tf.keras.models.save_model(model, save_path, save_format='h5')
     print(f"Saving results in {history_path}")
     with open(history_path, "wb+") as results_file:
         pickle.dump(history.history, results_file)
@@ -56,7 +52,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--spec",
-        default="/home/matt/Projects/CV/final/experiments/pretrained_01.json",
+        default="/home/matt/Projects/CV/final/experiments/simple01.json",
         required=False,
         help="Path to json file with experiment specification",
     )
@@ -87,7 +83,12 @@ if __name__ == "__main__":
     save_dir = "/home/matt/Projects/CV/final/saved_models/"
     results_dir = "/home/matt/Projects/CV/final/experiments/results/"
 
-    save_path = os.path.join(save_dir, name)
+    datasets = spec_data['data']['datasets']
+
+    data_params = spec_data['data'].get('data_params', {})
+    loader = DataLoader(datasets, **data_params)
+
+    save_path = os.path.join(save_dir, f'{name}.hp5')
     results_path = os.path.join(results_dir, name)
 
-    main(builder, trainer, save_path, results_path)
+    main(builder, trainer, loader, save_path, results_path)

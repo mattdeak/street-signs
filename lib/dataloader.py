@@ -24,7 +24,7 @@ N_OUTPUTS = 10
 
 class DataLoader:
     def __init__(
-        self, dataset_spec, num_epochs=20, batch_size=16, shuffle_buffer_len=10000
+        self, dataset_spec, num_epochs=100, batch_size=16, shuffle_buffer_len=10000
     ):
         self.num_epochs = num_epochs
         self.batch_size = batch_size
@@ -53,6 +53,11 @@ class DataLoader:
         train_dataset = self.interleave(train_datasets)
         val_dataset = self.interleave(val_datasets)
         test_dataset = self.interleave(test_datasets)
+
+        # Before repeating, extract counts
+        self.train_size = train_dataset.reduce(0, lambda x, _: x + 1).numpy()
+        self.val_size = val_dataset.reduce(0, lambda x, _: x + 1).numpy()
+        self.test_size = test_dataset.reduce(0, lambda x, _: x + 1).numpy()
 
         self.train_dataset = (
             train_dataset.repeat(self.num_epochs)
