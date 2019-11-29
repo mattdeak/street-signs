@@ -1,0 +1,10 @@
+{
+  "architecture": "vgg16",
+  "builder_args": {
+    "dense_units": 512,
+    "activation": "selu",
+    "lr": 0.0001
+  },
+  "trainer_args": {"max_epochs": 100, "patience": 7},
+  "data": {"datasets": ["svhn_extra", "format2_negative"]}
+}

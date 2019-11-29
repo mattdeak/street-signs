@@ -9,6 +9,7 @@ def train_from_scratch(
     max_epochs=100,
     steps_per_epoch=32,
     validation_steps=32,
+    patience=3
 ):
     """train_from_scratch
 
@@ -24,7 +25,7 @@ def train_from_scratch(
     history
     """
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)
+        tf.keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=True)
     ]
     history = model.fit(
         train_dataset,
@@ -46,6 +47,7 @@ def train_from_pretrained(
     steps_per_epoch=32,
     validation_steps=32,
     n_frozen_epochs=0,
+    patience=3
 ):
     """train_from_pretrained
 
@@ -72,7 +74,7 @@ def train_from_pretrained(
 
     # Create early stopping
     callbacks = [
-        tf.keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)
+        tf.keras.callbacks.EarlyStopping(patience=patience, restore_best_weights=True)
     ]
 
     # Freeze vgg layer for n_frozen_epochs

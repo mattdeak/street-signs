@@ -5,6 +5,6 @@
         "activation": "selu",
         "lr": 0.0001
     },
-    "trainer_args": {"max_epochs": 100},
-    "dataset": {"use_extra": false}
+    "trainer_args": {"max_epochs": 100, "patience": 7},
+    "data": {"datasets": ["svhn_noextra", "format2_negative"]}
 }
