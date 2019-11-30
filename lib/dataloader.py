@@ -43,21 +43,30 @@ class DataLoader:
         val_datasets = []
         test_datasets = []
 
+        self.train_size = 0
+        self.val_size = 0
+        self.test_size = 0
+
         for dataset_name in dataset_spec:
             assert dataset_name in DIRECTORIES, f"{dataset_name} not supported"
-            train_datasets.append(self.load_train_dataset(dataset_name))
-            val_datasets.append(self.load_val_dataset(dataset_name))
-            test_datasets.append(self.load_test_dataset(dataset_name))
+            train_subset = self.load_train_dataset(dataset_name)
+            val_subset = self.load_val_dataset(dataset_name)
+            test_subset = self.load_test_dataset(dataset_name)
+
+            # We have to do this incrementally here, as the interleave
+            # operation disrupts the count
+            self.train_size += train_subset.reduce(0, lambda x, _: x + 1).numpy()
+            self.val_size += val_subset.reduce(0, lambda x, _: x + 1).numpy()
+            self.test_size += test_subset.reduce(0, lambda x, _: x + 1).numpy()
+
+            train_datasets.append(train_subset)
+            val_datasets.append(val_subset)
+            test_datasets.append(test_subset)
 
         # Interleave each list of datasets into 1
         train_dataset = self.interleave(train_datasets)
         val_dataset = self.interleave(val_datasets)
         test_dataset = self.interleave(test_datasets)
-
-        # Before repeating, extract counts
-        self.train_size = train_dataset.reduce(0, lambda x, _: x + 1).numpy()
-        self.val_size = val_dataset.reduce(0, lambda x, _: x + 1).numpy()
-        self.test_size = test_dataset.reduce(0, lambda x, _: x + 1).numpy()
 
         self.train_dataset = (
             train_dataset.repeat(self.num_epochs)
@@ -113,3 +122,4 @@ class DataLoader:
                 )
             )
         return combined_dataset
+
