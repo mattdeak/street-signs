@@ -1,3 +1,4 @@
+
 {
     "architecture": "vgg16",
     "builder_args": {
@@ -7,5 +8,5 @@
         "lr": 0.0001
     },
     "trainer_args": {"max_epochs": 100, "n_frozen_epochs": 0, "patience": 3},
-    "data": {"datasets": ["svhn_extra", "format2_negative"]}
+    "data": {"datasets": ["svhn_noextra"]}
 }

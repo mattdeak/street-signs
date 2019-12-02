@@ -45,28 +45,25 @@ class DataLoader:
 
         self.train_size = 0
         self.val_size = 0
-        self.test_size = 0
 
         for dataset_name in dataset_spec:
             assert dataset_name in DIRECTORIES, f"{dataset_name} not supported"
             train_subset = self.load_train_dataset(dataset_name)
             val_subset = self.load_val_dataset(dataset_name)
-            test_subset = self.load_test_dataset(dataset_name)
 
             # We have to do this incrementally here, as the interleave
             # operation disrupts the count
             self.train_size += train_subset.reduce(0, lambda x, _: x + 1).numpy()
             self.val_size += val_subset.reduce(0, lambda x, _: x + 1).numpy()
-            self.test_size += test_subset.reduce(0, lambda x, _: x + 1).numpy()
 
-            train_datasets.append(train_subset)
-            val_datasets.append(val_subset)
-            test_datasets.append(test_subset)
+            # Repeating ensures that there are no end-of-sequences reached through interleaving
+            # Although this is pretty inelegant. There must be a better way
+            train_datasets.append(train_subset.repeat())
+            val_datasets.append(val_subset.repeat())
 
         # Interleave each list of datasets into 1
         train_dataset = self.interleave(train_datasets)
         val_dataset = self.interleave(val_datasets)
-        test_dataset = self.interleave(test_datasets)
 
         self.train_dataset = (
             train_dataset.repeat(self.num_epochs)
@@ -75,7 +72,6 @@ class DataLoader:
             .prefetch(1)
         )
         self.val_dataset = val_dataset.batch(self.batch_size).prefetch(1)
-        self.test_dataset = test_dataset.batch(self.batch_size).prefetch(1)
 
     def load_train_dataset(self, dataset_name):
         root_dir = DIRECTORIES[dataset_name]
@@ -87,10 +83,12 @@ class DataLoader:
         val_record = os.path.join(root_dir, "val.tfrecord")
         return self._load_dataset(val_record)
 
-    def load_test_dataset(self, dataset_name):
+    def generate_test_dataset(self, dataset_name):
         root_dir = DIRECTORIES[dataset_name]
         test_record = os.path.join(root_dir, "test.tfrecord")
-        return self._load_dataset(test_record)
+        test_set = self._load_dataset(test_record)
+        test_set = test_set.batch(self.batch_size).prefetch(1)
+        return test_set
 
     def _load_dataset(self, record_path):
         dataset = tf.data.TFRecordDataset(record_path)
