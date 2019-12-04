@@ -4,8 +4,6 @@ import cv2
 import tensorflow as tf
 import os
 
-ASPECT_RATIO_MIN = 0.3
-ASPECT_RATIO_MAX = 1.2
 
 ANNOTATION_OFFSET = 50
 
