@@ -63,7 +63,6 @@ class DataLoader:
         preprocessors={},
     ):
         self.num_epochs = num_epochs
-        self.add_noise = add_noise
         self.batch_size = batch_size
         self.shuffle_buffer_len = shuffle_buffer_len
 
