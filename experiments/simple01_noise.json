@@ -1,0 +1,14 @@
+{
+    "architecture": "simple",
+    "builder_args": {
+        "dense_units": 512,
+        "convolutional_blocks": 2,
+        "convolutions_per_block": 3,
+        "activation": "selu",
+        "lr": 0.0001
+    },
+    "trainer_args": {"max_epochs": 100, "patience": 7},
+    "data": {"datasets": ["svhn_noextra", "format2_negative"],
+    "data_params": {"add_noise": true}
+    }
+}

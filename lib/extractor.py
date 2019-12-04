@@ -5,26 +5,6 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-# ROOT_DIR = "/home/matt/Projects/CV/final/"
-# run = True
-# write_all_boxes = False
-# show_final_product = False
-# run_model = False
-
-# img_name = 'test1'
-
-# filename = [x for x in os.listdir("input") if img_name in x][0] # Filetype agnosticism
-# print(filename)
-# test_img = cv2.imread(ROOT_DIR + '/input/' + filename)
-
-# model = tf.keras.models.load_model(ROOT_DIR + "saved_models/vggpretrained01_extra.hp5")
-# # test_img = cv2.resize(test_img, (300, 300))
-# test_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-# gray_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2GRAY)
-
-# mser = cv2.MSER_create(_delta=12, _min_area=40)
-# _, bboxes = mser.detectRegions(gray_img)
-
 
 def nms(detections, threshold=0.5):
     """nms
@@ -85,31 +65,12 @@ def overlap_ratio(bbox1, bbox2):
     right_x_intersect = min(x1 + w1, x2 + w2)
     bottom_y_intersect = min(y1 + h1, y2 + h2)
 
-
     intersection = max(0, (right_x_intersect - left_x_intersect)) * max(
         0, bottom_y_intersect - top_y_intersect
     )
 
     box2_area = ((x2 + w2) - x2) * ((y2 + h2) - y2)
     return intersection / box2_area
-
-
-def intersect_over_union(bbox1, bbox2):
-    x1, y1, w1, h1 = bbox1
-    x2, y2, w2, h2 = bbox2
-    left_x_intersect = max(x1, x2)
-    top_y_intersect = max(y1, y2)
-    right_x_intersect = min(x1 + w1, x2 + w2)
-    bottom_y_intersect = min(y1 + h1, y2 + h2)
-
-    intersection = max(0, (right_x_intersect - left_x_intersect + 1)) * max(
-        0, bottom_y_intersect - top_y_intersect + 1
-    )
-
-    box1_area = ((x1 + w1) - x1 + 1) * ((y1 + h1) - y1 + 1)
-    box2_area = ((x2 + w2) - x2 + 1) * ((y2 + h2) - y2 + 1)
-    union = box1_area + box2_area - intersection
-    return intersection / union
 
 
 def get_detections(bboxes, img, model, threshold=0.9, write_all_boxes=False):
@@ -130,10 +91,8 @@ def get_detections(bboxes, img, model, threshold=0.9, write_all_boxes=False):
             resized = cv2.resize(cropped, (32, 32), cv2.INTER_AREA).astype(float)
         cropped_images.append(resized)
 
-
     cropped_images = np.array(cropped_images)
-    preds = model.predict(cropped_images / 255.)
-
+    preds = model.predict(cropped_images / 255.0)
 
     for pred, box in zip(preds, bboxes):
         if any(pred[:10] > threshold):
@@ -146,30 +105,81 @@ def get_detections(bboxes, img, model, threshold=0.9, write_all_boxes=False):
     return detections
 
 
-if __name__ == "__main__":
-    pass
-    # detections = get_detections(bboxes, test_img, model,write_all_boxes=write_all_boxes)
-    # suppressed_detections = nms(detections)
+def get_centroid(bbox):
+    x, y, w, h = bbox
+    return (x + w // 2), (y + h // 2)
 
-    # for confidence, cls, bbox in suppressed_detections:
-    #     x, y, w, h = bbox
-    #     text_location = (x, y)
-    #     cv2.rectangle(test_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
-    #     cv2.putText(
-    #         test_img, str(cls), text_location, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2,
-    #     )
 
-    # if write_all_boxes:
-    #     cv2.imwrite(f"output/allboxes_{img_name}.jpeg", test_img)
-    # else:
-    #     cv2.imwrite(f"output/result_{img_name}.jpeg", test_img)
+def get_distance(bbox1, bbox2):
+    x1, y1 = get_centroid(bbox1)
+    x2, y2 = get_centroid(bbox2)
 
-    # if show_final_product:
-    #     window = cv2.namedWindow("window")
+    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
-    #     while True:
-    #         cv2.imshow(window, test_img)
-    #         if cv2.waitKey(0) == 27:
-    #             break
 
-    # cv2.destroyAllWindows()
+def prune_by_distance(box_records, multiplier=1.5):
+    pruned_boxes = set()
+    for i in range(len(box_records) - 1):
+        _, _, box1 = box_records[i]
+        for j in range(i + 1, len(box_records)):
+            _, _, box2 = box_records[j]
+            distance = get_distance(box1, box2)
+            size1 = max(box1[2], box1[3])
+            size2 = max(box2[2], box2[3])
+            if distance < min(size1, size2) * multiplier:
+                pruned_boxes.add(i)
+                pruned_boxes.add(j)
+
+    return [box_records[i] for i in list(pruned_boxes)]
+
+
+def process_image(
+    img, mser, model, write_mser_detected=False, prune_aspect_ratio=True, threshold=0.85
+):
+    img_copy = img.copy()
+    rgb_image = cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB)
+    gray_image = cv2.cvtColor(img_copy, cv2.COLOR_BGR2GRAY)
+    inverted_gray = 255 - gray_image
+
+    _, bboxes1 = mser.detectRegions(gray_image)
+    _, bboxes2 = mser.detectRegions(inverted_gray)
+
+    bboxes = np.vstack([bboxes1, bboxes2])
+
+    if write_mser_detected:
+        for box in bboxes:
+            x, y, w, h = box
+            cv2.rectangle(img_copy, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+    if prune_aspect_ratio:
+        for i in range(len(bboxes) - 1, -1, -1):
+            bbox = bboxes[i]
+            x, y, w, h = bbox
+            aspect_ratio = w / h
+            if aspect_ratio < ASPECT_RATIO_MIN or aspect_ratio > ASPECT_RATIO_MAX:
+                bboxes = np.delete(bboxes, i, 0)
+
+    if write_mser_detected:
+        for box in bboxes:
+            x, y, w, h = box
+            cv2.rectangle(img_copy, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+    try:
+        detections = get_detections(bboxes, rgb_image, model, threshold=threshold)
+    except Exception as e:
+        print(e)
+        return img_copy
+
+    suppressed_detections = nms(detections)
+    pruned_detections = prune_by_distance(suppressed_detections)
+    print(f"Writing {len(pruned_detections)} boxes")
+
+    if not pruned_detections:
+        print("No digits detected. Skipping...")
+        return img_copy
+
+    for confidence, cls, bbox in pruned_detections:
+        draw_number_box(img_copy, bbox, cls, confidence)
+
+    draw_final_house_number(img_copy, pruned_detections)
+    return img_copy

@@ -4,15 +4,17 @@
         "weights": "imagenet",
         "dense_units": 512,
         "activation": "selu",
-        "lr": 0.0001,
+        "lr": 0.0001
     },
     "trainer_args": {"max_epochs": 100, "n_frozen_epochs": 0, "patience": 3},
     "data": {
         "datasets": ["svhn_extra", "format2_negative"],
-        "preprocessors": {
-            "add_noise": {"mean": 0, "sigma": 0.05},
-            "random_rotate": {},
-            "random_shear": {}
+        "data_params": {
+            "preprocessors": {
+                "add_noise": {"mean": 0, "sigma": 0.05},
+                "random_shear": {"degree_range": 30},
+                "random_rotate": {"degree_range": 30}
+            }
         }
     }
 }
