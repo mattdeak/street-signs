@@ -1,6 +1,5 @@
 import tensorflow as tf
 from lib.utils import load_train, load_test
-from lib.pipelines import *
 from lib.models import *
 from lib.trainers import *
 from lib.dataloader import DataLoader

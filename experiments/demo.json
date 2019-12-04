@@ -1,18 +1,19 @@
 {
-    "architecture": "vgg16",
-    "builder_args": {
-        "weights": "imagenet",
-        "dense_units": 512,
-        "activation": "selu",
-        "lr": 0.0001
-    },
-    "trainer_args": {"max_epochs": 100, "n_frozen_epochs": 0, "patience": 3},
-    "data": {
-        "datasets": ["svhn_extra", "format2_negative"],
-        "data_params": {
-            "preprocessors": {
-                "add_noise": {"mean": 0, "sigma": 0.05}
-            }
-        }
+  "architecture": "simple",
+  "builder_args": {
+    "dense_units": 64,
+    "convolutional_blocks": 2,
+    "convolutions_per_block": 3,
+    "activation": "selu",
+    "lr": 0.0001
+  },
+  "trainer_args": {"max_epochs": 100, "patience": 1},
+  "data": {
+    "datasets": ["svhn_extra", "format2_negative"],
+    "data_params": {
+      "preprocessors": {
+        "add_noise": {"mean": 0, "sigma": 0.05}
+      }
     }
+  }
 }
