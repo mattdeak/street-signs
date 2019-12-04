@@ -5,20 +5,24 @@ import numpy as np
 import scipy.io
 from abc import abstractmethod, ABC
 
+tf.compat.v1.enable_eager_execution()
+
 feature_desc = {
-        'image/height': tf.io.FixedLenFeature([], tf.int64),
-        'image/width': tf.io.FixedLenFeature([], tf.int64),
-        'image/label': tf.io.FixedLenFeature([], tf.int64),
-        'image/image': tf.io.FixedLenFeature([], tf.string)
-        }
+    "image/height": tf.io.FixedLenFeature([], tf.int64),
+    "image/width": tf.io.FixedLenFeature([], tf.int64),
+    "image/label": tf.io.FixedLenFeature([], tf.int64),
+    "image/image": tf.io.FixedLenFeature([], tf.string),
+}
+
 
 def parse_example(example):
     parsed = tf.io.parse_single_example(example, feature_desc)
 
-    image_encoded = parsed['image/image']
+    image_encoded = parsed["image/image"]
     image = tf.image.decode_jpeg(image_encoded)
-    label = parsed['image/label']
+    label = parsed["image/label"]
     return image, label
+
 
 class Preprocessor(ABC):
     @abstractmethod
@@ -49,7 +53,19 @@ class ResizeImage(Preprocessor):
 class FloatifyImage(Preprocessor):
     def __call__(self, image, labels):
         """Converts an image from 0-255 int to 0-1 float format."""
-        return image / 255, labels
+        float_image = tf.cast(image, tf.float32)
+        return float_image / 255.0, labels
+
+
+class RandomNoise(Preprocessor):
+    def __init__(self, mean=0, sigma=0.05, img_shape=(32, 32, 3)):
+        self.mean = mean
+        self.sigma = sigma
+        self.image_shape = img_shape
+
+    def __call__(self, image, labels):
+        noise = tf.random.normal(self.image_shape, mean=self.mean, stddev=self.sigma)
+        return tf.add(image, noise), labels
 
 
 class RandomAugmentation(Preprocessor):
@@ -121,3 +137,40 @@ class Maybe(Preprocessor):
 class DropLabels(Preprocessor):
     def __call__(self, image, labels):
         return image
+
+
+class RandomRotation(Preprocessor):
+    def __init__(self, degree_range=30, fill_method="nearest"):
+        self.degree_range = degree_range
+        self.fill_method = fill_method
+
+    def __call__(self, image, labels):
+        print(f'Shape: {image.shape}')
+        rotated = tf.keras.preprocessing.image.random_rotation(
+            image,
+            self.degree_range,
+            row_axis=1,
+            col_axis=2,
+            channel_axis=3,
+            fill_mode=self.fill_method,
+        )
+
+        return rotated, labels
+
+
+class RandomShear(Preprocessor):
+    def __init__(self, degree_range=30, fill_method="nearest"):
+        self.degree_range = degree_range
+        self.fill_method = fill_method
+
+    def __call__(self, image, labels):
+        sheared = tf.keras.preprocessing.image.random_shear(
+            image[0].numpy(),
+            self.degree_range,
+            row_axis=0,
+            col_axis=1,
+            channel_axis=2,
+            fill_mode=self.fill_method,
+        )
+
+        return sheared, labels

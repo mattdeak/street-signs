@@ -5,25 +5,25 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 
-ROOT_DIR = "/home/matt/Projects/CV/final/"
-run = True
-write_all_boxes = False
-show_final_product = False
-run_model = False
+# ROOT_DIR = "/home/matt/Projects/CV/final/"
+# run = True
+# write_all_boxes = False
+# show_final_product = False
+# run_model = False
 
-img_name = 'test1'
+# img_name = 'test1'
 
-filename = [x for x in os.listdir("input") if img_name in x][0] # Filetype agnosticism
-print(filename)
-test_img = cv2.imread(ROOT_DIR + '/input/' + filename)
+# filename = [x for x in os.listdir("input") if img_name in x][0] # Filetype agnosticism
+# print(filename)
+# test_img = cv2.imread(ROOT_DIR + '/input/' + filename)
 
-model = tf.keras.models.load_model(ROOT_DIR + "saved_models/vggpretrained01_extra.hp5")
-# test_img = cv2.resize(test_img, (300, 300))
-test_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-gray_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2GRAY)
+# model = tf.keras.models.load_model(ROOT_DIR + "saved_models/vggpretrained01_extra.hp5")
+# # test_img = cv2.resize(test_img, (300, 300))
+# test_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+# gray_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2GRAY)
 
-mser = cv2.MSER_create(_delta=12, _min_area=40)
-_, bboxes = mser.detectRegions(gray_img)
+# mser = cv2.MSER_create(_delta=12, _min_area=40)
+# _, bboxes = mser.detectRegions(gray_img)
 
 
 def nms(detections, threshold=0.5):
@@ -53,8 +53,9 @@ def nms(detections, threshold=0.5):
                 j += 1
                 continue
             _, _, box2 = sorted_boxes[j]
-            overlap = overlap_ratio(box1, box2)
-            if overlap > threshold:
+            overlap1 = overlap_ratio(box1, box2)
+            overlap2 = overlap_ratio(box2, box1)
+            if overlap1 > threshold or overlap2 > threshold:
                 marked_for_removal.add(j)
             j += 1
         i += 1
@@ -111,51 +112,64 @@ def intersect_over_union(bbox1, bbox2):
     return intersection / union
 
 
-def get_detections(bboxes, write_all_boxes=False):
+def get_detections(bboxes, img, model, threshold=0.9, write_all_boxes=False):
     detections = []
-    if run:
-        for box in tqdm(bboxes):
-            x, y, w, h = box
-            if write_all_boxes:
-                cv2.rectangle(test_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
+    cropped_images = []
+    boxes = []
+    for box in tqdm(bboxes):
+        x, y, w, h = box
+        if write_all_boxes:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 1)
 
-            cropped = test_img[y : y + h, x : x + w]
-            resized = cv2.resize(cropped, (32, 32)).astype(float)
-            blurred = cv2.GaussianBlur(resized, (3, 3), 10)
-            pred = model.predict(resized.reshape(1, 32, 32, 3))[0]
+        cropped = img[y : y + h, x : x + w]
 
-            if any(pred[:10] > 0.9):
-                predicted_class = pred.argmax() + 1  # Because of weird digit handling
-                if predicted_class == 10:
-                    predicted_class = 0
-                box_record = (pred.max(), predicted_class, box)
-                detections.append(box_record)
+        # Use cubic interpolation to grow, area to shrink
+        if w > 32 or h > 32:
+            resized = cv2.resize(cropped, (32, 32), cv2.INTER_CUBIC).astype(float)
+        else:
+            resized = cv2.resize(cropped, (32, 32), cv2.INTER_AREA).astype(float)
+        cropped_images.append(resized)
+
+
+    cropped_images = np.array(cropped_images)
+    preds = model.predict(cropped_images / 255.)
+
+
+    for pred, box in zip(preds, bboxes):
+        if any(pred[:10] > threshold):
+            predicted_class = pred.argmax() + 1  # Because of weird digit handling
+            if predicted_class == 10:
+                predicted_class = 0
+            box_record = (pred.max(), predicted_class, box)
+            detections.append(box_record)
 
     return detections
 
 
-detections = get_detections(bboxes, write_all_boxes=write_all_boxes)
-suppressed_detections = nms(detections)
+if __name__ == "__main__":
+    pass
+    # detections = get_detections(bboxes, test_img, model,write_all_boxes=write_all_boxes)
+    # suppressed_detections = nms(detections)
 
-for confidence, cls, bbox in suppressed_detections:
-    x, y, w, h = bbox
-    text_location = (x, y)
-    cv2.rectangle(test_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
-    cv2.putText(
-        test_img, str(cls), text_location, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2,
-    )
+    # for confidence, cls, bbox in suppressed_detections:
+    #     x, y, w, h = bbox
+    #     text_location = (x, y)
+    #     cv2.rectangle(test_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
+    #     cv2.putText(
+    #         test_img, str(cls), text_location, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2,
+    #     )
 
-if write_all_boxes:
-    cv2.imwrite(f"output/allboxes_{img_name}.jpeg", test_img)
-else:
-    cv2.imwrite(f"output/result_{img_name}.jpeg", test_img)
+    # if write_all_boxes:
+    #     cv2.imwrite(f"output/allboxes_{img_name}.jpeg", test_img)
+    # else:
+    #     cv2.imwrite(f"output/result_{img_name}.jpeg", test_img)
 
-if show_final_product:
-    window = cv2.namedWindow("window")
+    # if show_final_product:
+    #     window = cv2.namedWindow("window")
 
-    while True:
-        cv2.imshow(window, test_img)
-        if cv2.waitKey(0) == 27:
-            break
+    #     while True:
+    #         cv2.imshow(window, test_img)
+    #         if cv2.waitKey(0) == 27:
+    #             break
 
-cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()

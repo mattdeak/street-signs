@@ -19,17 +19,57 @@ DIRECTORIES = {
     "format2_negative": "data/format2_negatives/",
 }
 
+PREPROCESSORS = {
+    "add_noise": preprocess.RandomNoise,
+    "random_rotate": preprocess.RandomRotation,
+    "random_shear": preprocess.RandomShear,
+    "maybe": preprocess.Maybe,
+}
+
+
 N_OUTPUTS = 10
+
+
+def parse_preprocessing_dict(preproc_dict):
+    processors = []
+    for k, v in preproc_dict.items():
+        if k == "maybe":
+            assert len(v) == 1, "Only one augmentation per Maybe wrapper is supported"
+            maybe_wrapper = PREPROCESSORS["maybe"]
+
+            proc_class = list(v.keys())[0]
+            proc_args = list(v.values())[0]
+            instantiated_proc = proc_class(**proc_args)
+            maybe_proc = maybe_wrapper(instantiated_proc)
+            processors.append(maybe_proc)
+
+        else:
+            print(f"Creating preprocessor: {k}")
+            proc_class = PREPROCESSORS[k]
+            print(proc_class)
+            instantiated_proc = proc_class(**v)
+            processors.append(instantiated_proc)
+
+    return processors
 
 
 class DataLoader:
     def __init__(
-        self, dataset_spec, num_epochs=100, batch_size=16, shuffle_buffer_len=10000
+        self,
+        dataset_spec,
+        num_epochs=100,
+        batch_size=16,
+        shuffle_buffer_len=10000,
+        add_noise=False,
+        preprocessors={},
     ):
         self.num_epochs = num_epochs
+        self.add_noise = add_noise
         self.batch_size = batch_size
         self.shuffle_buffer_len = shuffle_buffer_len
 
+        self.preprocessors = parse_preprocessing_dict(preprocessors)
+        
         if any("negative" in name for name in dataset_spec):
             self.has_negative_class = True
         else:
@@ -76,7 +116,12 @@ class DataLoader:
     def load_train_dataset(self, dataset_name):
         root_dir = DIRECTORIES[dataset_name]
         train_record = os.path.join(root_dir, "train.tfrecord")
-        return self._load_dataset(train_record)
+        train_dataset = self._load_dataset(train_record)
+
+        for processor in self.preprocessors:
+            train_dataset = train_dataset.map(processor)
+
+        return train_dataset
 
     def load_val_dataset(self, dataset_name):
         root_dir = DIRECTORIES[dataset_name]
@@ -93,6 +138,7 @@ class DataLoader:
     def _load_dataset(self, record_path):
         dataset = tf.data.TFRecordDataset(record_path)
         dataset = dataset.map(preprocess.parse_example)
+        dataset = dataset.map(preprocess.FloatifyImage())
         # Preprocessors
         dataset = dataset.map(preprocess.OneHotLabels(self.n_classes))
         return dataset
@@ -120,4 +166,3 @@ class DataLoader:
                 )
             )
         return combined_dataset
-
