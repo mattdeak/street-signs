@@ -99,7 +99,7 @@ if __name__ == "__main__":
     for f in filepaths:
         filename = ntpath.basename(f)
         filename = filename.replace(".jpeg", "").replace(".png", "").replace(".jpg", "")
-        write_path = os.path.join(OUTPUT_DIR, f"{filename}_result.jpeg")
+        write_path = os.path.join(OUTPUT_DIR, f"{filename}.png")
 
         print(f"Processing file: {filename}")
 
