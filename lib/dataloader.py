@@ -60,7 +60,6 @@ class DataLoader:
         num_epochs=100,
         batch_size=16,
         shuffle_buffer_len=10000,
-        add_noise=False,
         preprocessors={},
     ):
         self.num_epochs = num_epochs
