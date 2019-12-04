@@ -7,24 +7,6 @@ Simply run `python run.py`. This will automatically run the number recognition p
 
 
 ## Running a Classification Experiment
-### Preparing Data
-Data is located at: LINK. Please ensure that the data is unzipped in the `data` folder. The data contains svhn images that were compressed into tfrecord files. The directory should be structured as
-
-top-level
- data
-  svhn
-   extra
-    train.tfrecord
-    val.tfrecord
-    test.tfrecord
-   noextra
-    train.tfrecord
-    val.tfrecord
-    test.tfrecord
-  format2_negative
-    train.tfrecord
-    val.tfrecord
-
 ### Preparing Spec
 
 Specifications for an experiment are provided in `json` format in the `experiments` folder.
@@ -42,4 +24,14 @@ When you have a spec defined, you can run it simply by using `python run_experim
 
 ### Evaluating an Experiment
 To evaluate an experiment on a test set after running, simply use `python evaluate_experiment.py --spec PATH_TO_SPEC --test-dataset DATASET_NAME`. If left blank, `test-dataset` will default to `svhn_noextra`.
+
+### Models Used
+Saved models are located in `saved_models`.
+They map to the paper as:
+
+simple01_noise_extra = 'Model 1'
+vgg01_noise_extra = 'Model 2'
+vggpretrained01_noise_extra= 'Model 3'
+
+Their corresponding specifications can be found in the experiments folder.
 
